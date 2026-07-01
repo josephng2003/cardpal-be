@@ -2,9 +2,9 @@ name: CI/CD - Spring Boot Gradle Serverless
 
 on:
   pull_request:
-    branches: [main]
+    branches: [master, dev]
   push:
-    branches: [main]
+    branches: [master, dev]
   workflow_dispatch:
     inputs:
       stage:

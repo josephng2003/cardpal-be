@@ -2,7 +2,7 @@ name: CI/CD - Spring Boot Gradle Serverless
 
 on:
   pull_request:
-    branches: [master]
+    branches: [dev, master]
   push:
     branches: [master]
   workflow_dispatch:
@@ -18,14 +18,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref || github.ref_name }}
   cancel-in-progress: true
 
 env:
   JAVA_VERSION: "21"
   NODE_VERSION: "24"
-  SERVERLESS_STAGE: ${{ github.event.inputs.stage || 'prod' }}
-  AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+  AWS_REGION: ${{ secrets.AWS_REGION || 'ap-southeast-1' }}
 
 jobs:
   build-test:
@@ -73,16 +72,33 @@ jobs:
     name: Deploy with Serverless Framework
     runs-on: ubuntu-latest
     needs: build-test
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'pull_request' || github.event_name == 'push' || github.event_name == 'workflow_dispatch'
 
     permissions:
       contents: read
       id-token: write
 
     environment:
-      name: ${{ github.event.inputs.stage || 'prod' }}
+      name: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'dev' && 'dev' || github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'master' && 'prod' || github.event.inputs.stage || 'prod' }}
 
     steps:
+      - name: Resolve deployment stage
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            if [ "${{ github.event.pull_request.base.ref }}" = "dev" ]; then
+              echo "SERVERLESS_STAGE=dev" >> "$GITHUB_ENV"
+            elif [ "${{ github.event.pull_request.base.ref }}" = "master" ]; then
+              echo "SERVERLESS_STAGE=prod" >> "$GITHUB_ENV"
+            else
+              echo "Unsupported PR target branch"
+              exit 1
+            fi
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "SERVERLESS_STAGE=${{ github.event.inputs.stage }}" >> "$GITHUB_ENV"
+          else
+            echo "SERVERLESS_STAGE=prod" >> "$GITHUB_ENV"
+          fi
+
       - name: Checkout repository
         uses: actions/checkout@v4
 

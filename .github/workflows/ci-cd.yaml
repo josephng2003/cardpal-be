@@ -23,7 +23,7 @@ concurrency:
 
 env:
   JAVA_VERSION: "21"
-  NODE_VERSION: "20"
+  NODE_VERSION: "24"
   SERVERLESS_STAGE: ${{ github.event.inputs.stage || 'prod' }}
   AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
 

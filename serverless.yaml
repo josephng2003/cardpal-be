@@ -1,0 +1,14 @@
+service: my-service
+provider:
+  name: aws
+  runtime: java21
+  environment:
+    SENTRY_DSN: ${env:SENTRY_DSN}
+    SENTRY_ENVIRONMENT: ${env:SENTRY_ENVIRONMENT}
+    SENTRY_AUTO_INIT: "false"
+    JAVA_TOOL_OPTIONS: "-javaagent:/var/task/sentry-opentelemetry-agent.jar"
+
+package:
+  patterns:
+    - build/libs/*.jar
+    - sentry-opentelemetry-agent.jar

@@ -1,4 +1,4 @@
-package decoteam.cardpal;
+package decoteam.cardpal.controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,14 +11,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
-class CardpalApplicationTests {
+class HealthControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @Test
-    void shouldReturnOkForActuator() throws Exception {
-        mockMvc.perform(get("/actuator/health"))
+    void shouldReturnOkForInfoSentryEndpoint() throws Exception {
+        mockMvc.perform(get("/info-sentry"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void shouldReturnOkForErrorSentryEndpoint() throws Exception {
+        mockMvc.perform(get("/error-sentry"))
                 .andExpect(status().isOk());
     }
 

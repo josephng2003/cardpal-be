@@ -24,7 +24,8 @@ concurrency:
 env:
   JAVA_VERSION: "21"
   NODE_VERSION: "24"
-  AWS_REGION: ${{ secrets.AWS_REGION || 'ap-southeast-1' }}
+  SENTRY_AGENT_VERSION: "8.47.0"
+  AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
 
 jobs:
   build-test:
@@ -123,6 +124,12 @@ jobs:
       - name: Build deployable artifact
         run: ./gradlew clean bootJar --no-daemon
 
+      - name: Download Sentry OpenTelemetry agent
+        run: |
+          curl -L \
+            -o sentry-opentelemetry-agent.jar \
+            "https://repo.maven.apache.org/maven2/io/sentry/sentry-opentelemetry-agent/${SENTRY_AGENT_VERSION}/sentry-opentelemetry-agent-${SENTRY_AGENT_VERSION}.jar"
+
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -132,4 +139,8 @@ jobs:
       - name: Deploy
         env:
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SENTRY_ENVIRONMENT: ${{ env.SERVERLESS_STAGE }}
+          SENTRY_AUTO_INIT: "false"
+          JAVA_TOOL_OPTIONS: "-javaagent:/var/task/sentry-opentelemetry-agent.jar"
         run: serverless deploy --stage "${SERVERLESS_STAGE}" --region "${AWS_REGION}" --verbose

@@ -26,6 +26,7 @@ env:
   NODE_VERSION: "24"
   SENTRY_AGENT_VERSION: "8.47.0"
   AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
 jobs:
   build-test:
@@ -138,6 +139,7 @@ jobs:
 
       - name: Deploy
         env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           SERVERLESS_ACCESS_KEY: ${{ secrets.SERVERLESS_ACCESS_KEY }}
           SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_ENVIRONMENT: ${{ env.SERVERLESS_STAGE }}

@@ -12,7 +12,7 @@ public class HealthController {
 
     @GetMapping("/info-sentry")
     public ResponseEntity<?> info() {
-        Sentry.logger().info("Hello world from Sentry");
+        Sentry.logger().info("Hello world from Sentry 111.1");
         return new ResponseEntity<>("Hello world from Sentry", HttpStatus.OK);
     }
 

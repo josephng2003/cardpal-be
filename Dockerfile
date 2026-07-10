@@ -1,84 +1,23 @@
-FROM eclipse-temurin:21-jdk-jammy
+# ---------- Build Stage ----------
+FROM eclipse-temurin:21-jdk-alpine AS builder
 
-CMD ["gradle"]
+WORKDIR /app
 
-ENV GRADLE_HOME=/opt/gradle
+COPY . .
 
-RUN set -o errexit -o nounset \
-    && echo "Adding gradle user and group" \
-    && groupadd --system --gid 1000 gradle \
-    && useradd --system --gid gradle --uid 1000 --shell /bin/bash --create-home gradle \
-    && mkdir /home/gradle/.gradle \
-    && chown --recursive gradle:gradle /home/gradle \
-    && chmod --recursive o+rwx /home/gradle \
-    \
-    && echo "Symlinking root Gradle cache to gradle Gradle cache" \
-    && ln --symbolic /home/gradle/.gradle /root/.gradle
+RUN chmod +x gradlew
 
-VOLUME /home/gradle/.gradle
+RUN ./gradlew clean bootJar --no-daemon
 
-WORKDIR /home/gradle
+# ---------- Runtime Stage ----------
+FROM eclipse-temurin:21-jre-alpine
 
-RUN set -o errexit -o nounset \
-    && apt-get update \
-    && apt-get install --yes --no-install-recommends \
-        # common utilities
-        make \
-        curl \
-        wget \
-        tar \
-        \
-        # Dockerfile dependencies
-        unzip \
-        \
-        # VCSes
-        brz \
-        git \
-        git-lfs \
-        mercurial \
-        openssh-client \
-        subversion \
-    && rm --recursive --force /var/lib/apt/lists/* \
-    \
-    && echo "Testing common utilities" \
-    && which awk \
-    && which curl \
-    && which cut \
-    && which grep \
-    && which gunzip \
-    && which sha256sum \
-    && which sed \
-    && which tar \
-    && which tr \
-    && which unzip \
-    && which wget \
-    \
-    && echo "Testing VCSes" \
-    && which brz \
-    && which git \
-    && which git-lfs \
-    && which hg \
-    && which svn
+WORKDIR /app
 
-ENV GRADLE_VERSION=9.6.1
-ARG GRADLE_DOWNLOAD_SHA256=9c0f7faeeb306cb14e4279a3e084ca6b596894089a0638e68a07c945a32c9e14
-RUN set -o errexit -o nounset \
-    && echo "Downloading Gradle" \
-    && wget --no-verbose --output-document=gradle.zip "https://services.gradle.org/distributions/gradle-${GRADLE_VERSION}-bin.zip" \
-    \
-    && echo "Checking Gradle download hash" \
-    && echo "${GRADLE_DOWNLOAD_SHA256} *gradle.zip" | sha256sum --check - \
-    \
-    && echo "Installing Gradle" \
-    && unzip gradle.zip \
-    && rm gradle.zip \
-    && mv "gradle-${GRADLE_VERSION}" "${GRADLE_HOME}/" \
-    && ln --symbolic "${GRADLE_HOME}/bin/gradle" /usr/bin/gradle
+COPY --from=builder /app/build/libs/*.jar app.jar
 
-USER gradle
+ENV PORT=8080
 
-RUN set -o errexit -o nounset \
-    && echo "Testing Gradle installation" \
-    && gradle --stacktrace --debug --version
+EXPOSE 8080
 
-USER root
+ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT} -jar app.jar"]

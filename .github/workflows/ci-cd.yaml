@@ -1,38 +1,71 @@
-# Note
-# If you have 2FA on your account, the PR close part of the action will hang (due to 2FA not being supported non-interactively)
-
-name: Manage PR environments (Railway)
+name: CI/CD - Spring Boot Gradle Serverless
 
 on:
   pull_request:
-    types: [opened, closed]
+    branches: [dev, master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: Serverless stage to deploy
+        required: true
+        default: prod
+        type: choice
+        options: [dev, staging, prod]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.base.ref || github.ref_name }}
+  cancel-in-progress: true
 
 env:
-  RAILWAY_API_TOKEN: "" # get this in account settings (make sure this is NOT a project token), and scope it to your account (not a workspace)
-  SERVICE_ID: "" # service ID to inject database variable into
-  ENV_NAME: "" # the environment variable name to inject (e.g DATABASE_URL)
-  ENV_VALUE: "" # the value to inject
-  DUPLICATE_FROM_ID: "" # railway environment to duplicate from
-  LINK_PROJECT_ID: "" # project ID
-  # WORKSPACE_ID: "" if you are linking to a project in a workspace, uncomment this
+  JAVA_VERSION: "21"
+  NODE_VERSION: "24"
+  SENTRY_AGENT_VERSION: "8.47.0"
+  AWS_REGION: ${{ secrets.AWS_REGION || 'us-east-1' }}
+  SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
 
 jobs:
-  pr_opened:
-    if: github.event.action == 'opened'
+  build-test:
+    name: Build and test
     runs-on: ubuntu-latest
-    container: ghcr.io/railwayapp/cli:latest
-    steps:
-      - name: Link to project
-        run: railway link --project ${{ env.LINK_PROJECT_ID }} --environment ${{ env.DUPLICATE_FROM_ID }} # --workspace ${{ env.WORKSPACE_ID }} # uncomment this if you are linking to a workspace project
-      - name: Create Railway Environment for PR
-        run: railway environment new pr-${{ github.event.pull_request.number }} --copy ${{ env.DUPLICATE_FROM_ID }} --service-variable ${{ env.SERVICE_ID }} "${{ env.ENV_NAME }}=${{ env.ENV_VALUE }}" --service-config ${{ env.SERVICE_ID }} "source.branch" "${{ github.head_ref }}"
 
-  pr_closed:
-    if: github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    container: ghcr.io/railwayapp/cli:latest
     steps:
-      - name: Link to project
-        run: railway link --project ${{ env.LINK_PROJECT_ID }} --environment ${{ env.DUPLICATE_FROM_ID }} # --workspace ${{ env.WORKSPACE_ID }} # uncomment this if you are linking to a workspace project
-      - name: Delete Railway Environment for PR
-        run: railway environment delete pr-${{ github.event.pull_request.number }} || true
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+          cache: gradle
+
+      - name: Make Gradle wrapper executable
+        run: chmod +x ./gradlew
+
+      - name: Validate Gradle wrapper
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Build and run tests
+        run: ./gradlew clean build --no-daemon
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: |
+            build/reports/tests/
+            build/test-results/
+          if-no-files-found: ignore
+
+      - name: Upload application artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spring-boot-artifact
+          path: build/libs/*.jar
+          if-no-files-found: error

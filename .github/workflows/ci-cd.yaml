@@ -1,4 +1,4 @@
-name: CI/CD - Spring Boot Gradle Serverless
+name: Cardpal BE continuous integration
 
 on:
   pull_request:

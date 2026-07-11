@@ -3,7 +3,6 @@ pipeline {
 
     environment {
         JAVA_VERSION = "21"
-        AWS_REGION = credentials('aws-region') ?: 'us-east-1'
         SENTRY_AUTH_TOKEN = credentials('sentry-auth-token')
     }
 

@@ -17,7 +17,8 @@ WORKDIR /app
 COPY --from=builder /app/build/libs/*.jar app.jar
 
 ENV PORT=8080
+ENV APP_ENV=prod
 
 EXPOSE 8080
 
-ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT} -jar app.jar -Dspring.profiles.active=${APP_ENV}"]
+ENTRYPOINT ["sh", "-c", "java -Dserver.port=${PORT:-8080} -jar app.jar --spring.profiles.active=${APP_ENV:-prod}"]

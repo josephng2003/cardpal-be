@@ -1,0 +1,7 @@
+springdoc:
+    api-docs:
+        path: /openapi
+scalar:
+    path: /api-docs
+    theme: blue-planet
+    layout: modern

@@ -40,6 +40,7 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
     implementation 'io.sentry:sentry-async-profiler:8.47.0'
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-api:3.0.3'
+    implementation 'org.springframework:spring-beans:7.0.8'
 	implementation 'org.springdoc:springdoc-openapi-starter-webmvc-scalar:3.0.3'
     implementation platform('io.sentry:sentry-bom:8.47.0')
     compileOnly 'org.projectlombok:lombok'
